@@ -6,6 +6,11 @@
 - VisualStudio2022以上
 
 # Build
+> [!NOTE]
+> CSharpAudio.cpp内でE2242エラーが発生していますが、IntelliSenseの不具合だと思われます。\
+> ビルド自体は通るので、明確な解決方法が見つかるまでそのままにしておく予定です。\
+> 問題のコードは100~130行目に含まれています。
+
 1. 任意のディレクトリにCSharpAudioのリポジトリをクローンする\
 	``git clone https://github.com/ocha545/CSharpAudio.git AnyDirectory``
 2. slnファイルをVisualStudioで開き、C#向けのDLLを生成する
