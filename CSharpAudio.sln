@@ -11,6 +11,8 @@ Global
 		Debug|x86 = Debug|x86
 		Debug-netcore|x64 = Debug-netcore|x64
 		Debug-netcore|x86 = Debug-netcore|x86
+		Debug-netframework|x64 = Debug-netframework|x64
+		Debug-netframework|x86 = Debug-netframework|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
@@ -23,6 +25,10 @@ Global
 		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netcore|x64.Build.0 = Debug-netcore|x64
 		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netcore|x86.ActiveCfg = Debug-netcore|Win32
 		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netcore|x86.Build.0 = Debug-netcore|Win32
+		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netframework|x64.ActiveCfg = Debug-netframework|x64
+		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netframework|x64.Build.0 = Debug-netframework|x64
+		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netframework|x86.ActiveCfg = Debug-netframework|Win32
+		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Debug-netframework|x86.Build.0 = Debug-netframework|Win32
 		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Release|x64.ActiveCfg = Release|x64
 		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Release|x64.Build.0 = Release|x64
 		{A8A4F041-9EED-49D0-BCDB-ED878E9FA884}.Release|x86.ActiveCfg = Release|Win32
