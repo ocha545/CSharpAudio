@@ -1,6 +1,5 @@
 ﻿#include"CSharpAudio.Helper.h"
 
-
 void CSA::Helper::SampleToTime(double sample, int& h, int& m, double& s)
 {
 	if (sample <= 0.0) sample = 0.0;
@@ -16,7 +15,6 @@ String^ CSA::Helper::FormatTwoDigids(int num)
 {
 	return (num < 10) ? ("0" + num.ToString()) : num.ToString();
 }
-
 
 String^ CSA::Helper::FormatTwoDigids(double num)
 {
