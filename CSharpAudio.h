@@ -8,7 +8,10 @@ using CSA::Types::Manage::XAudio2MV;
 using CSA::Types::Manage::XAudio2SV;
 using CSA::Types::CSAHandle;
 using CSA::Types::CSAInfo;
+using CSA::Types::Format::BaseFormat;
 using System::Collections::Generic::List;
+//using System::Runtime::InteropServices::GCHandle;
+//using System::Runtime::InteropServices::GCHandleType;
 
 namespace CSA
 {
@@ -33,9 +36,17 @@ namespace CSA
 	public:
 		CSharpAudio();
 
+		~CSharpAudio();
+
+		!CSharpAudio();
+
 		CSAResult Initialize();
 
-		CSAHandle Submit(array<short>^ buffer, CSAInfo info, int loop);
+		CSAHandle Submit(BaseFormat^ main_data);
+
+		CSAHandle Submit(BaseFormat^ main_data, int loop);
+
+//		CSAHandle OldSubmit(array<short>^ buffer, CSAInfo info, int loop);
 
 		bool IsStarting(CSAHandle handle);
 
