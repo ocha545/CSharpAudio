@@ -46,8 +46,6 @@ namespace CSA
 
 		CSAHandle Submit(BaseFormat^ main_data, int loop);
 
-//		CSAHandle OldSubmit(array<short>^ buffer, CSAInfo info, int loop);
-
 		bool IsStarting(CSAHandle handle);
 
 		void Start(CSAHandle handle);

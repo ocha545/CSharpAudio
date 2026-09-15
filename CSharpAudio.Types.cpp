@@ -23,7 +23,6 @@ namespace CSA
 			isRead = false;
 			info = CSAInfo();
 			format = CSAFormat::Base;
-//			buffer = new std::vector<short>();
 			buffer = gcnew array<short>(0);
 		}
 		Format::BaseFormat::~BaseFormat()
@@ -49,14 +48,9 @@ namespace CSA
 		{
 			return info;
 		}
-		//std::vector<short>* Format::BaseFormat::GetNativeBuffer()
-		//{
-		//	return buffer;
-		//}
 		array<short>^ Format::BaseFormat::GetBuffer()
 		{
 			return buffer;
-//			return vectorToCLIArray(std::vector<short>(0));
 		}
 		array<short>^ Format::BaseFormat::vectorToCLIArray(const std::vector<short>& vec)
 		{
@@ -80,7 +74,6 @@ namespace CSA
 			isRead = drmp3_init_file_w(mp3, nativePath, nullptr);
 			if (!isRead)
 			{
-				drmp3_uninit(mp3);
 				delete mp3;
 				System::Console::WriteLine("drmp3の初期化に失敗しました");
 				return;
@@ -131,7 +124,6 @@ namespace CSA
 			isRead = drwav_init_file_w(wave, nativePath, nullptr);
 			if (!isRead)
 			{
-				drwav_uninit(wave);
 				delete wave;
 				System::Console::WriteLine("drwavの初期化に失敗しました");
 				return;
@@ -206,226 +198,10 @@ namespace CSA
 		}
 
 
-		/*
-		OldFormat::FormatData::FormatData()
-		{
-			isRead = false;
-			info = CSAInfo();
-			buffer = gcnew array<short>(0);
-		}
-		array<short>^ OldFormat::FormatData::VectorToCLIArray(const std::vector<short>& vec)
-		{
-			array<short>^ tmp = gcnew array<short>((int)vec.size());
-
-			for (size_t i = 0; i < vec.size(); i++)
-			{
-				tmp[i] = vec[i];
-			}
-
-			return tmp;
-		}
-
-		OldFormat::MP3::MP3(String^ path)
-			: FormatData()
-		{
-			marshal_context ctx{};
-			const wchar_t* nativePath = ctx.marshal_as<const wchar_t*>(path);
-
-			drmp3* mp3 = new drmp3;
-			isRead = drmp3_init_file_w(mp3, nativePath, nullptr);
-			if (!isRead)
-			{
-				drmp3_uninit(mp3);
-				delete mp3;
-				System::Console::WriteLine("drmp3の初期化に失敗しました");
-				return;
-			}
-
-			info.SampleRate = mp3->sampleRate;
-			info.Channels = mp3->channels;
-			info.BitsPerSample = 16;
-			info.BlockAlign = static_cast<unsigned short>(info.Channels * 16 / 8);
-			info.FormatTag = WAVE_FORMAT_PCM;
-			info.AvgBytesPerSec = info.SampleRate * info.BlockAlign;
-
-			std::vector<short> main_buffer{};
-			const int buffer_size = 4096;
-			std::vector<short> cycle_buffer(buffer_size * info.Channels);
-
-			while (true)
-			{
-				drmp3_uint64 readLength = drmp3_read_pcm_frames_s16(mp3, buffer_size, cycle_buffer.data());
-				if (readLength == 0)
-				{
-					break;
-				}
-				if (readLength < 0)
-				{
-					drmp3_uninit(mp3);
-					delete mp3;
-				}
-
-				drmp3_uint64 sample = readLength * (drmp3_uint64)info.Channels;
-				main_buffer.insert(main_buffer.end(), cycle_buffer.begin(), cycle_buffer.begin() + (size_t)sample);
-			}
-
-			buffer = VectorToCLIArray(main_buffer);
-
-			drmp3_uninit(mp3);
-			delete mp3;
-		}
-		OldFormat::MP3::~MP3()
-		{
-			this->!MP3();
-		}
-		OldFormat::MP3::!MP3()
-		{
-			this->info = CSAInfo();
-			this->isRead = false;
-		}
-		bool OldFormat::MP3::IsValid()
-		{
-			return isRead;
-		}
-		CSAFormat OldFormat::MP3::GetFormat()
-		{
-			return CSAFormat::MP3;
-		}
-		CSAInfo OldFormat::MP3::GetInfo()
-		{
-			return info;
-		}
-		array<short>^ OldFormat::MP3::GetBuffer()
-		{
-			return buffer;
-		}
-
-		OldFormat::Wave::Wave(String^ path) : FormatData()
-		{
-			marshal_context ctx{};
-			const wchar_t* nativePath = ctx.marshal_as<const wchar_t*>(path);
-
-			drwav* wave = new drwav;
-			isRead = drwav_init_file_w(wave, nativePath, nullptr);
-
-			info.FormatTag = WAVE_FORMAT_PCM;
-			info.Channels = static_cast<unsigned short>(wave->channels);
-			info.SampleRate = wave->sampleRate;
-			info.BitsPerSample = wave->bitsPerSample;
-			info.BlockAlign = static_cast<unsigned short>(wave->channels * wave->bitsPerSample / 8);
-			info.AvgBytesPerSec = info.SampleRate * info.BlockAlign;
-
-			uint64_t allFrameCount = (uint64_t)(info.Channels * wave->totalPCMFrameCount);
-			if (allFrameCount > UINT64_MAX)
-			{
-				drwav_uninit(wave);
-				delete wave;
-				System::Console::WriteLine("drwavで扱える値の数を超えました");
-				return;
-			}
-
-			std::vector<short> main_buffer((size_t)allFrameCount);
-			if (info.BitsPerSample == 8)
-			{
-				drwav_read_raw(wave, (size_t)wave->totalPCMFrameCount, main_buffer.data());
-			}
-			else
-			{
-				drwav_read_pcm_frames_s16(wave, wave->totalPCMFrameCount, main_buffer.data());
-			}
-			buffer = VectorToCLIArray(main_buffer);
-
-			drwav_uninit(wave);
-			delete wave;
-		}
-		OldFormat::Wave::~Wave()
-		{
-			this->!Wave();
-		}
-		OldFormat::Wave::!Wave()
-		{
-			this->info = CSAInfo();
-			this->isRead = false;
-		}
-		bool OldFormat::Wave::IsValid()
-		{
-			return isRead;
-		}
-		CSAFormat OldFormat::Wave::GetFormat()
-		{
-			return CSAFormat::Wave;
-		}
-		CSAInfo OldFormat::Wave::GetInfo()
-		{
-			return info;
-		}
-		array<short>^ OldFormat::Wave::GetBuffer()
-		{
-			return buffer;
-		}
-
-		OldFormat::Flac::Flac(String^ path) : FormatData()
-		{
-			marshal_context ctx{};
-			const wchar_t* nativePath = ctx.marshal_as<const wchar_t*>(path);
-
-			drflac* flac = drflac_open_file_w(nativePath, nullptr);
-			if (flac == nullptr)
-			{
-				System::Console::WriteLine("Flacファイルを読み込めませんでした");
-				return;
-			}
-			isRead = true;
-
-			info.FormatTag = WAVE_FORMAT_PCM;
-			info.Channels = static_cast<unsigned short>(flac->channels);
-			info.SampleRate = flac->sampleRate;
-			info.BitsPerSample = 16;
-			info.BlockAlign = static_cast<unsigned short>(info.Channels * 16 / 8);
-			info.AvgBytesPerSec = info.SampleRate * info.BlockAlign;
-
-			uint64_t allFrameCount = info.Channels * flac->totalPCMFrameCount;
-			if (allFrameCount > UINT64_MAX)
-			{
-				System::Console::WriteLine("drflacで扱える値の数を超えました");
-			}
-
-			std::vector<short> main_buffer((size_t)allFrameCount);
-			drflac_read_pcm_frames_s16(flac, flac->totalPCMFrameCount, main_buffer.data());
-
-			buffer = VectorToCLIArray(main_buffer);
-			drflac_close(flac);
-		}
-		OldFormat::Flac::~Flac()
-		{
-			this->!Flac();
-		}
-		OldFormat::Flac::!Flac()
-		{
-			this->info = CSAInfo();
-			this->isRead = false;
-		}
-		bool OldFormat::Flac::IsValid()
-		{
-			return isRead;
-		}
-		CSAFormat OldFormat::Flac::GetFormat()
-		{
-			return CSAFormat::Flac;
-		}
-		CSAInfo OldFormat::Flac::GetInfo()
-		{
-			return info;
-		}
-		array<short>^ OldFormat::Flac::GetBuffer()
-		{
-			return buffer;
-		}
-*/
-
 		template<typename T>
 		T* Manage::getPtr(IntPtr ptr)
 		{
+			return static_cast<T*>(ptr.ToPointer());
 			return (T*)(ptr.ToPointer());
 		}
 
@@ -451,6 +227,7 @@ namespace CSA
 		}
 		void Manage::XAudio2::SetPointer(IXAudio2* ptr)
 		{
+			Release();
 			xaudio2 = IntPtr(ptr);
 		}
 		void Manage::XAudio2::Release()
@@ -484,6 +261,7 @@ namespace CSA
 		}
 		void Manage::XAudio2MV::SetPointer(IXAudio2MasteringVoice* ptr)
 		{
+			DestroyVoice();
 			masterVoice = IntPtr(ptr);
 		}
 		void Manage::XAudio2MV::DestroyVoice()
@@ -517,6 +295,7 @@ namespace CSA
 		}
 		void Manage::XAudio2SV::SetPointer(IXAudio2SourceVoice* ptr)
 		{
+			DestroyVoice();
 			sourceVoice = IntPtr(ptr);
 		}
 		void Manage::XAudio2SV::DestroyVoice()
