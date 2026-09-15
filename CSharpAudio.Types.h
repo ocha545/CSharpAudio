@@ -7,9 +7,6 @@ using msclr::interop::marshal_context;
 
 #include<xaudio2.h>
 #include<vector>
-//#include"third_party/dr_mp3.h"
-//#include"third_party/dr_wav.h"
-//#include"third_party/dr_flac.h"
 
 namespace CSA
 {
@@ -50,6 +47,48 @@ namespace CSA
 		};
 
 		namespace Format
+		{
+			public ref class BaseFormat
+			{
+			protected:
+				bool isRead;
+				CSAInfo info;
+				CSAFormat format;
+				array<short>^ buffer;
+				array<short>^ vectorToCLIArray(const std::vector<short>& vec);
+
+			public:
+				BaseFormat();
+				~BaseFormat();
+				!BaseFormat();
+
+				bool IsValid();
+				CSAFormat GetFormat();
+				CSAInfo GetInfo();
+				array<short>^ GetBuffer();
+			};
+
+			public ref class MP3 : public BaseFormat
+			{
+			public:
+				MP3(String^ path);
+			};
+
+			public ref class Wave : public BaseFormat
+			{
+			public:
+				Wave(String^ path);
+			};
+
+			public ref class Flac : public BaseFormat
+			{
+			public:
+				Flac(String^ path);
+			};
+		}
+
+/*
+		namespace OldFormat
 		{
 			public interface class IFormat
 			{
@@ -119,6 +158,7 @@ namespace CSA
 				virtual array<short>^ GetBuffer();
 			};
 		}
+*/
 
 		namespace Manage
 		{
