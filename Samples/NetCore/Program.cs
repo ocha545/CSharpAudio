@@ -11,7 +11,7 @@ class Program
 		// シャイニングスター : 魔王魂(MaouDamashii)
 		MP3 mp3 = new MP3("../maou_14_shining_star.mp3");
 
-		int handle = csa.Submit(mp3.GetBuffer(), mp3.GetInfo(), 0);
+		int handle = csa.Submit(mp3);
 		if(handle == -1)
 		{
 			Console.WriteLine("音声ファイルが読み込めませんでした");
