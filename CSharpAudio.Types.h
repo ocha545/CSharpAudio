@@ -14,14 +14,29 @@ namespace CSA
 	{
 		typedef int CSAHandle;
 
+		public enum class CSAResult
+		{
+			// Initialize Result
+			FAILED_INITIALIZE_COM = -1,
+			FAILED_CREATE_XAUDIO2 = -2,
+			FAILED_CREATE_MASTERINGVOICE = -3,
+			SUCCEEDED = -4,
+
+			// Submit Result
+			FAILED_CREATE_SOURCEVOICE = -5,
+			EMPTY_BUFFER = -6,
+			FAILED_SUBMIT_XAUDIO2_BUFFER = -7,
+		};
+
 		public enum class CSAFormat
 		{
-			Base,
+			None,
 			MP3,
 			Wave,
 			Flac,
 		};
 
+		/// @brief 音声データの情報を扱う構造体です
 		public value class CSAInfo
 		{
 		public:
@@ -46,14 +61,15 @@ namespace CSA
 			}
 		};
 
+		/// @brief 音声データのフォーマットを扱うクラスを格納しています
 		namespace Format
 		{
 			public ref class BaseFormat
 			{
 			protected:
-				bool isRead;
 				CSAInfo info;
 				CSAFormat format;
+				bool isRead;
 				array<short>^ buffer;
 				array<short>^ vectorToCLIArray(const std::vector<short>& vec);
 
@@ -68,18 +84,24 @@ namespace CSA
 				array<short>^ GetBuffer();
 			};
 
+			/// @brief mp3ファイルのデータを抽出します。
+			/// Submit関数に渡すと、ハンドルを作成できます
 			public ref class MP3 : public BaseFormat
 			{
 			public:
 				MP3(String^ path);
 			};
 
+			/// @brief wavファイルのデータを抽出します。
+			/// Submit関数に渡すと、ハンドルを作成できます
 			public ref class Wave : public BaseFormat
 			{
 			public:
 				Wave(String^ path);
 			};
 
+			/// @brief flacファイルのデータを抽出します。
+			/// Submit関数に渡すと、ハンドルを作成できます
 			public ref class Flac : public BaseFormat
 			{
 			public:
@@ -87,6 +109,7 @@ namespace CSA
 			};
 		}
 
+		/// @brief IXAudio2のラッパークラスを格納しています
 		namespace Manage
 		{
 			template<typename T>
@@ -147,6 +170,7 @@ namespace CSA
 			};
 		}
 
+		/// @brief 基本的な例外クラスを格納しています
 		namespace Exception
 		{
 			public ref class CSharpAudioException : public System::Exception

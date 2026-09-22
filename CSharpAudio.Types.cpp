@@ -22,7 +22,7 @@ namespace CSA
 		{
 			isRead = false;
 			info = CSAInfo();
-			format = CSAFormat::Base;
+			format = CSAFormat::None;
 			buffer = gcnew array<short>(0);
 		}
 		Format::BaseFormat::~BaseFormat()
@@ -31,10 +31,10 @@ namespace CSA
 		}
 		Format::BaseFormat::!BaseFormat()
 		{
-			//if (buffer != nullptr)
-			//{
-			//	delete buffer;
-			//}
+			if (buffer != nullptr)
+			{
+				delete buffer;
+			}
 		}
 		bool Format::BaseFormat::IsValid()
 		{
@@ -202,7 +202,6 @@ namespace CSA
 		T* Manage::getPtr(IntPtr ptr)
 		{
 			return static_cast<T*>(ptr.ToPointer());
-			return (T*)(ptr.ToPointer());
 		}
 
 		Manage::XAudio2::XAudio2()
