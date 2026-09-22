@@ -48,7 +48,7 @@ CSA::CSharpAudio::!CSharpAudio()
 	}
 }
 
-CSA::CSharpAudio::CSAResult CSA::CSharpAudio::Initialize()
+CSAResult CSA::CSharpAudio::Initialize()
 {
 	HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if (FAILED(result))
@@ -87,7 +87,7 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	HRESULT result = xaudio2->Get()->CreateSourceVoice(&sourceVoice_tmp, &fmt, XAUDIO2_VOICE_USEFILTER);
 	if (FAILED(result))
 	{
-		return -1;
+		return (CSAHandle)CSAResult::FAILED_CREATE_SOURCEVOICE;
 	}
 	XAudio2SV^ sourceVoice = gcnew XAudio2SV();
 	sourceVoice->SetPointer(sourceVoice_tmp);
@@ -95,10 +95,10 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	XAUDIO2_BUFFER xaudio2Buffer{};
 	if (main_data->GetBuffer()->Length == 0)
 	{
-		return -1;
+		return (CSAHandle)CSAResult::EMPTY_BUFFER;
 	}
+
 	pin_ptr<short> nativeBuf = &main_data->GetBuffer()[0];
-	//	GCHandle gcHandle = GCHandle::Alloc(main_data->GetBuffer(), GCHandleType::Pinned);
 	xaudio2Buffer.pAudioData = (BYTE*)nativeBuf;
 	xaudio2Buffer.Flags = XAUDIO2_END_OF_STREAM;
 	xaudio2Buffer.AudioBytes = (size_t)main_data->GetBuffer()->Length * sizeof(main_data->GetBuffer()[0]);
@@ -107,8 +107,7 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
 	if (FAILED(result))
 	{
-		System::Console::WriteLine("オーディオバッファの送信に失敗しました");
-		return -1;
+		return (CSAHandle)CSAResult::FAILED_SUBMIT_XAUDIO2_BUFFER;
 	}
 
 	sourceVoices->Add(sourceVoice);
@@ -117,7 +116,7 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	return (sourceVoices->Count - 1);
 }
 
-CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loop)
+CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loopCount)
 {
 	IXAudio2SourceVoice* sourceVoice_tmp = nullptr;
 	WAVEFORMATEX fmt = main_data->GetInfo().GetNativeData();
@@ -125,7 +124,7 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loop)
 	HRESULT result = xaudio2->Get()->CreateSourceVoice(&sourceVoice_tmp, &fmt, XAUDIO2_VOICE_USEFILTER);
 	if (FAILED(result))
 	{
-		return -1;
+		return (CSAHandle)CSAResult::FAILED_CREATE_SOURCEVOICE;
 	}
 	XAudio2SV^ sourceVoice = gcnew XAudio2SV();
 	sourceVoice->SetPointer(sourceVoice_tmp);
@@ -133,20 +132,19 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loop)
 	XAUDIO2_BUFFER xaudio2Buffer{};
 	if (main_data->GetBuffer()->Length == 0)
 	{
-		return -1;
+		return (CSAHandle)CSAResult::EMPTY_BUFFER;
 	}
 
 	pin_ptr<short> nativeBuf = &main_data->GetBuffer()[0];
 	xaudio2Buffer.pAudioData = (BYTE*)nativeBuf;
 	xaudio2Buffer.Flags = XAUDIO2_END_OF_STREAM;
 	xaudio2Buffer.AudioBytes = (size_t)main_data->GetBuffer()->Length * sizeof(main_data->GetBuffer()[0]);
-	xaudio2Buffer.LoopCount = loop;
+	xaudio2Buffer.LoopCount = loopCount;
 
 	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
 	if (FAILED(result))
 	{
-		System::Console::WriteLine("オーディオバッファの送信に失敗しました");
-		return -1;
+		return (CSAHandle)CSAResult::FAILED_SUBMIT_XAUDIO2_BUFFER;
 	}
 
 	sourceVoices->Add(sourceVoice);
