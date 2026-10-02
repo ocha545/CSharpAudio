@@ -11,6 +11,7 @@ using CSA::Types::CSAHandle;
 using CSA::Types::CSAInfo;
 using CSA::Types::Format::BaseFormat;
 using CSA::Types::Exception::CSharpAudioException;
+using CSA::Types::Exception::CSharpAudioExceptionFuncs;
 using System::Collections::Generic::List;
 
 namespace CSA
@@ -53,7 +54,7 @@ namespace CSA
 		/// @param loop ループの回数を指定します
 		/// @return 作成したハンドルを返します。
 		/// INVALID_HANDLEの場合、GetLastErrorで詳細なエラーを取得できます
-		CSAHandle Submit(BaseFormat^ main_data, int loop);
+		CSAHandle Submit(BaseFormat^ main_data, unsigned int loop);
 
 		/// @brief 最後に発生したエラーを返します
 		/// @return 

@@ -197,6 +197,12 @@ namespace CSA
 				{
 				}
 			};
+
+			public ref class CSharpAudioExceptionFuncs
+			{
+			public:
+				static void ThrowXAudio2Exception(HRESULT result);
+			};
 		}
 	}
 }

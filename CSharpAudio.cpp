@@ -2,7 +2,12 @@
 
 bool CSA::CSharpAudio::validHandle(CSAHandle handle)
 {
-	if (handle < sourceVoices->Count && handle != Types::INVALID_HANDLE &&
+	if (sourceVoices == nullptr)
+	{
+		return false;
+	}
+
+	if (handle < sourceVoices->Count || handle >= 0 ||
 		sourceVoices[handle] != nullptr)
 	{
 		return sourceVoices[handle]->IsValid();
@@ -23,7 +28,11 @@ CSAResult CSA::CSharpAudio::initialize()
 	result = XAudio2Create(&xaudio2_tmp);
 	if (FAILED(result))
 	{
-		if (coInitialized) CoUninitialize();
+		if (coInitialized)
+		{
+			CoUninitialize();
+			coInitialized = false;
+		}
 		return CSAResult::FAILED_CREATE_XAUDIO2;
 	}
 	xaudio2->SetPointer(xaudio2_tmp);
@@ -32,8 +41,18 @@ CSAResult CSA::CSharpAudio::initialize()
 	result = xaudio2->Get()->CreateMasteringVoice(&masterVoice_tmp);
 	if (FAILED(result))
 	{
-		if (coInitialized) CoUninitialize();
-		if (xaudio2) xaudio2->Release();
+		if (xaudio2 != nullptr)
+		{
+			if (xaudio2->IsValid())
+			{
+				xaudio2->Release();
+			}
+		}
+		if (coInitialized)
+		{
+			CoUninitialize();
+			coInitialized = false;
+		}
 		return CSAResult::FAILED_CREATE_MASTERINGVOICE;
 	}
 	masterVoice->SetPointer(masterVoice_tmp);
@@ -86,6 +105,7 @@ CSA::CSharpAudio::~CSharpAudio()
 		}
 		submitDataPtrs->Clear();
 		delete submitDataPtrs;
+		submitDataPtrs = nullptr;
 //System::Console::WriteLine("Delete SubmitDataPtrs");
 	}
 
@@ -93,6 +113,7 @@ CSA::CSharpAudio::~CSharpAudio()
 	{
 		submitDataSizes->Clear();
 		delete submitDataSizes;
+		submitDataSizes = nullptr;
 //System::Console::WriteLine("Delete SubmitDataPtrs");
 	}
 
@@ -110,7 +131,9 @@ CSA::CSharpAudio::~CSharpAudio()
 				}
 			}
 		}
+		sourceVoices->Clear();
 		delete sourceVoices;
+		sourceVoices = nullptr;
 //System::Console::WriteLine("Delete SourceVoices");
 	}
 
@@ -120,6 +143,7 @@ CSA::CSharpAudio::~CSharpAudio()
 		{
 			masterVoice->DestroyVoice();
 			delete masterVoice;
+			masterVoice = nullptr;
 //System::Console::WriteLine("Delete MasteringVoice");
 		}
 	}
@@ -130,6 +154,7 @@ CSA::CSharpAudio::~CSharpAudio()
 		{
 			xaudio2->Release();
 			delete xaudio2;
+			xaudio2 = nullptr;
 //System::Console::WriteLine("Delete XAudio2");
 		}
 	}
@@ -212,10 +237,12 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	submitDataSizes->Add(submitDataSize);
 	//sourceVoiceInfos->Add(main_data->GetInfo());
 
+
+	lastError = CSAResult::UNUSED;
 	return (sourceVoices->Count - 1);
 }
 
-CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loopCount)
+CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, unsigned int loopCount)
 {
 	if (main_data == nullptr)
 	{
@@ -268,6 +295,7 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loopCount)
 	sourceVoices->Add(sourceVoice);
 	//sourceVoiceInfos->Add(main_data->GetInfo());
 
+	lastError = CSAResult::UNUSED;
 	return (sourceVoices->Count - 1);
 }
 
@@ -291,41 +319,8 @@ void CSA::CSharpAudio::Start(CSAHandle handle)
 {
 	if (validHandle(handle))
 	{
-		//HRESULT result = sourceVoices->ToArray()[handle]->Get()->Start();
 		HRESULT result = sourceVoices[handle]->Get()->Start();
-		if (FAILED(result))
-		{
-			switch (static_cast<CSAResult>(result))
-			{
-			case CSAResult::INVALID_CALL:
-				throw gcnew CSharpAudioException(CSAResult::INVALID_CALL.ToString());
-				break;
-
-			case CSAResult::XMA_DECODER_ERROR:
-				throw gcnew CSharpAudioException(
-					"Xbox 360 XMA ハードウェアで回復不能なエラーが発生しました: " + CSAResult::XMA_DECODER_ERROR.ToString()
-				);
-				break;
-
-			case CSAResult::XAPO_CREATION_FAILED:
-				throw gcnew CSharpAudioException(
-					"XAPOのインスタンス化に失敗しました: " + CSAResult::XAPO_CREATION_FAILED.ToString()
-				);
-				break;
-
-			case CSAResult::DEVICE_INVALIDATED:
-				throw gcnew CSharpAudioException(
-					"オーディオデバイスが取り外されたり、他のイベントが発生したため使用出来なくなりました: " + CSAResult::DEVICE_INVALIDATED.ToString()
-				);
-				break;
-
-			default:
-				throw gcnew CSharpAudioException(
-					"Win32APIの中で何かしらのエラーが発生しました: " + result
-				);
-				break;
-			}
-		}
+		CSharpAudioExceptionFuncs::ThrowXAudio2Exception(result);
 	}
 }
 
@@ -334,39 +329,7 @@ void CSA::CSharpAudio::Stop(CSAHandle handle)
 	if (validHandle(handle))
 	{
 		HRESULT result = sourceVoices[handle]->Get()->Stop();
-		if (FAILED(result))
-		{
-			switch (static_cast<CSAResult>(result))
-			{
-			case CSAResult::INVALID_CALL:
-				throw gcnew CSharpAudioException(CSAResult::INVALID_CALL.ToString());
-				break;
-
-			case CSAResult::XMA_DECODER_ERROR:
-				throw gcnew CSharpAudioException(
-					"Xbox 360 XMA ハードウェアで回復不能なエラーが発生しました: " + CSAResult::XMA_DECODER_ERROR.ToString()
-				);
-				break;
-
-			case CSAResult::XAPO_CREATION_FAILED:
-				throw gcnew CSharpAudioException(
-					"XAPOのインスタンス化に失敗しました: " + CSAResult::XAPO_CREATION_FAILED.ToString()
-				);
-				break;
-
-			case CSAResult::DEVICE_INVALIDATED:
-				throw gcnew CSharpAudioException(
-					"オーディオデバイスが取り外されたり、他のイベントが発生したため使用出来なくなりました: " + CSAResult::DEVICE_INVALIDATED.ToString()
-				);
-				break;
-
-			default:
-				throw gcnew CSharpAudioException(
-					"Win32APIの中で何かしらのエラーが発生しました: " + result
-				);
-				break;
-			}
-		}
+		CSharpAudioExceptionFuncs::ThrowXAudio2Exception(result);
 	}
 }
 
@@ -375,38 +338,6 @@ void CSA::CSharpAudio::SetVolume(CSAHandle handle, float volume)
 	if (validHandle(handle))
 	{
 		HRESULT result = sourceVoices[handle]->Get()->SetVolume(volume);
-		if (FAILED(result))
-		{
-			switch (static_cast<CSAResult>(result))
-			{
-			case CSAResult::INVALID_CALL:
-				throw gcnew CSharpAudioException(CSAResult::INVALID_CALL.ToString());
-				break;
-
-			case CSAResult::XMA_DECODER_ERROR:
-				throw gcnew CSharpAudioException(
-					"Xbox 360 XMA ハードウェアで回復不能なエラーが発生しました: " + CSAResult::XMA_DECODER_ERROR.ToString()
-				);
-				break;
-
-			case CSAResult::XAPO_CREATION_FAILED:
-				throw gcnew CSharpAudioException(
-					"XAPOのインスタンス化に失敗しました: " + CSAResult::XAPO_CREATION_FAILED.ToString()
-				);
-				break;
-
-			case CSAResult::DEVICE_INVALIDATED:
-				throw gcnew CSharpAudioException(
-					"オーディオデバイスが取り外されたり、他のイベントが発生したため使用出来なくなりました: " + CSAResult::DEVICE_INVALIDATED.ToString()
-				);
-				break;
-
-			default:
-				throw gcnew CSharpAudioException(
-					"Win32APIの中で何かしらのエラーが発生しました: " + result
-				);
-				break;
-			}
-		}
+		CSharpAudioExceptionFuncs::ThrowXAudio2Exception(result);
 	}
 }

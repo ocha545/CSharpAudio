@@ -75,6 +75,7 @@ namespace CSA
 			if (!isRead)
 			{
 				delete mp3;
+				isRead = false;
 				//System::Console::WriteLine("drmp3の初期化に失敗しました");
 				return;
 			}
@@ -117,11 +118,12 @@ namespace CSA
 			format = CSAFormat::Wave;
 			pin_ptr<const wchar_t> nativePath = PtrToStringChars(path);
 
-			drwav* wave = new drwav;
+			drwav* wave = new drwav{ 0 };
 			isRead = drwav_init_file_w(wave, nativePath, nullptr);
 			if (!isRead)
 			{
 				delete wave;
+				isRead = false;
 				//System::Console::WriteLine("drwavの初期化に失敗しました");
 				return;
 			}
@@ -138,15 +140,16 @@ namespace CSA
 			uint64_t allFrameCount = static_cast<uint64_t>(info.Channels * wave->totalPCMFrameCount);
 
 			std::vector<short> main_buffer(allFrameCount);
-			main_buffer.resize(allFrameCount);
-			if (info.BitsPerSample == 8)
+
+			//drwav_read_raw(wave, wave->totalPCMFrameCount, main_buffer.data());
+			uint64_t readSize = drwav_read_pcm_frames_s16(wave, wave->totalPCMFrameCount, main_buffer.data());
+			if (readSize != wave->totalPCMFrameCount)
 			{
-				drwav_read_raw(wave, wave->totalPCMFrameCount, main_buffer.data());
+				drwav_uninit(wave);
+				delete wave;
+				isRead = false;
 			}
-			else
-			{
-				drwav_read_pcm_frames_s16(wave, wave->totalPCMFrameCount, main_buffer.data());
-			}
+
 			buffer = vectorToCLIArray(main_buffer);
 
 			drwav_uninit(wave);
@@ -180,7 +183,12 @@ namespace CSA
 			uint64_t allFrameCount = info.Channels * flac->totalPCMFrameCount;
 
 			std::vector<short> main_buffer(allFrameCount);
-			drflac_read_pcm_frames_s16(flac, flac->totalPCMFrameCount, main_buffer.data());
+			uint64_t readSize = drflac_read_pcm_frames_s16(flac, flac->totalPCMFrameCount, main_buffer.data());
+			if (readSize != flac->totalPCMFrameCount)
+			{
+				drflac_close(flac);
+				isRead = false;
+			}
 
 			buffer = vectorToCLIArray(main_buffer);
 			drflac_close(flac);
@@ -295,6 +303,46 @@ namespace CSA
 //System::Console::WriteLine("Destroy SourceVoice");
 				getPtr<IXAudio2SourceVoice>(sourceVoice)->DestroyVoice();
 				sourceVoice = IntPtr::Zero;
+			}
+		}
+
+		void Exception::CSharpAudioExceptionFuncs::ThrowXAudio2Exception(HRESULT result)
+		{
+			if (SUCCEEDED(result))
+			{
+				//何も無し！
+				return;
+			}
+
+			switch (result)
+			{
+			case XAUDIO2_E_INVALID_CALL:
+				throw gcnew CSharpAudioException(CSAResult::INVALID_CALL.ToString());
+				return;
+
+			case XAUDIO2_E_XMA_DECODER_ERROR:
+				throw gcnew CSharpAudioException(
+					"Xbox 360 XMA ハードウェアで回復不能なエラーが発生しました: " + CSAResult::XMA_DECODER_ERROR.ToString()
+				);
+				return;
+
+			case XAUDIO2_E_XAPO_CREATION_FAILED:
+				throw gcnew CSharpAudioException(
+					"XAPOのインスタンス化に失敗しました: " + CSAResult::XAPO_CREATION_FAILED.ToString()
+				);
+				return;
+
+			case XAUDIO2_E_DEVICE_INVALIDATED:
+				throw gcnew CSharpAudioException(
+					"オーディオデバイスが取り外されたり、他のイベントが発生したため使用出来なくなりました: " + CSAResult::DEVICE_INVALIDATED.ToString()
+				);
+				return;
+
+			default:
+				throw gcnew CSharpAudioException(
+					"Win32APIの中で何かしらのエラーが発生しました: " + result
+				);
+				return;
 			}
 		}
 	}
