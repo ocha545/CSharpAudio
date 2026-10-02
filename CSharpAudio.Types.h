@@ -1,9 +1,8 @@
 ﻿#pragma once
 #using<System.dll>
-#include<msclr/marshal.h>
+#include<vcclr.h>
 using System::IntPtr;
 using System::String;
-using msclr::interop::marshal_context;
 
 #include<xaudio2.h>
 #include<vector>
@@ -12,20 +11,35 @@ namespace CSA
 {
 	namespace Types
 	{
+		constexpr unsigned short DEFAULT_BITS_PER_SAMPLE = 16;
+		constexpr int INVALID_HANDLE = -1;
+
 		typedef int CSAHandle;
 
 		public enum class CSAResult
 		{
+			// Unused Result
+			// 何も情報が無い場合Unusedにする
+			UNUSED,
+
 			// Initialize Result
-			FAILED_INITIALIZE_COM = -1,
-			FAILED_CREATE_XAUDIO2 = -2,
-			FAILED_CREATE_MASTERINGVOICE = -3,
-			SUCCEEDED = -4,
+			FAILED_INITIALIZE_COM,
+			FAILED_CREATE_XAUDIO2,
+			FAILED_CREATE_MASTERINGVOICE,
+			SUCCEEDED,
 
 			// Submit Result
-			FAILED_CREATE_SOURCEVOICE = -5,
-			EMPTY_BUFFER = -6,
-			FAILED_SUBMIT_XAUDIO2_BUFFER = -7,
+			INVALID_DATA,
+			FAILED_CREATE_SOURCEVOICE,
+			EMPTY_BUFFER,
+			FAILED_SUBMIT_XAUDIO2_BUFFER,
+
+
+			// XAudio2 Specific Result
+			INVALID_CALL = XAUDIO2_E_INVALID_CALL,
+			XMA_DECODER_ERROR = XAUDIO2_E_XMA_DECODER_ERROR,
+			XAPO_CREATION_FAILED = XAUDIO2_E_XAPO_CREATION_FAILED,
+			DEVICE_INVALIDATED = XAUDIO2_E_DEVICE_INVALIDATED
 		};
 
 		public enum class CSAFormat
@@ -81,7 +95,7 @@ namespace CSA
 				bool IsValid();
 				CSAFormat GetFormat();
 				CSAInfo GetInfo();
-				array<short>^ GetBuffer();
+				array<short>^% GetBuffer();
 			};
 
 			/// @brief mp3ファイルのデータを抽出します。

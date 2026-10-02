@@ -48,7 +48,7 @@ namespace CSA
 		{
 			return info;
 		}
-		array<short>^ Format::BaseFormat::GetBuffer()
+		array<short>^% Format::BaseFormat::GetBuffer()
 		{
 			return buffer;
 		}
@@ -62,27 +62,27 @@ namespace CSA
 			return outArr;
 		}
 
-
 		Format::MP3::MP3(String^ path)
 			: BaseFormat()
 		{
 			format = CSAFormat::MP3;
-			marshal_context ctx{};
-			const wchar_t* nativePath = ctx.marshal_as<const wchar_t*>(path);
+			pin_ptr<const wchar_t> nativePath = PtrToStringChars(path);
 
 			drmp3* mp3 = new drmp3;
 			isRead = drmp3_init_file_w(mp3, nativePath, nullptr);
 			if (!isRead)
 			{
 				delete mp3;
-				System::Console::WriteLine("drmp3の初期化に失敗しました");
+				//System::Console::WriteLine("drmp3の初期化に失敗しました");
 				return;
 			}
 
 			info.SampleRate = mp3->sampleRate;
 			info.Channels = mp3->channels;
-			info.BitsPerSample = 16;
-			info.BlockAlign = static_cast<unsigned short>(info.Channels * 16 / 8);
+			info.BitsPerSample = DEFAULT_BITS_PER_SAMPLE;
+			info.BlockAlign = static_cast<unsigned short>(
+				info.Channels * info.BitsPerSample / 8
+			);
 			info.FormatTag = WAVE_FORMAT_PCM;
 			info.AvgBytesPerSec = info.SampleRate * info.BlockAlign;
 
@@ -95,10 +95,12 @@ namespace CSA
 				drmp3_uint64 readLength = drmp3_read_pcm_frames_s16(mp3, buffer_size, cycle_buffer.data());
 				if (readLength == 0)
 				{
+					//読み込み終了
 					break;
 				}
 				if (readLength < 0)
 				{
+					//読み込み失敗
 					drmp3_uninit(mp3);
 					delete mp3;
 				}
@@ -117,39 +119,33 @@ namespace CSA
 			: BaseFormat()
 		{
 			format = CSAFormat::Wave;
-			marshal_context ctx{};
-			const wchar_t* nativePath = ctx.marshal_as<const wchar_t*>(path);
+			pin_ptr<const wchar_t> nativePath = PtrToStringChars(path);
 
 			drwav* wave = new drwav;
 			isRead = drwav_init_file_w(wave, nativePath, nullptr);
 			if (!isRead)
 			{
 				delete wave;
-				System::Console::WriteLine("drwavの初期化に失敗しました");
+				//System::Console::WriteLine("drwavの初期化に失敗しました");
 				return;
 			}
 
 			info.FormatTag = WAVE_FORMAT_PCM;
 			info.Channels = static_cast<unsigned short>(wave->channels);
 			info.SampleRate = wave->sampleRate;
-			info.BitsPerSample = wave->bitsPerSample;
-			info.BlockAlign = static_cast<unsigned short>(wave->channels * wave->bitsPerSample / 8);
+			info.BitsPerSample = DEFAULT_BITS_PER_SAMPLE;
+			info.BlockAlign = static_cast<unsigned short>(
+				info.Channels * info.BitsPerSample / 8
+			);
 			info.AvgBytesPerSec = info.SampleRate * info.BlockAlign;
 
-			uint64_t allFrameCount = (uint64_t)(info.Channels * wave->totalPCMFrameCount);
-			if (allFrameCount > UINT64_MAX)
-			{
-				drwav_uninit(wave);
-				delete wave;
-				System::Console::WriteLine("drwavで扱える値の数を超えました");
-				return;
-			}
+			uint64_t allFrameCount = static_cast<uint64_t>(info.Channels * wave->totalPCMFrameCount);
 
-			std::vector<short> main_buffer((size_t)allFrameCount);
-			main_buffer.resize((size_t)allFrameCount);
+			std::vector<short> main_buffer(allFrameCount);
+			main_buffer.resize(allFrameCount);
 			if (info.BitsPerSample == 8)
 			{
-				drwav_read_raw(wave, (size_t)wave->totalPCMFrameCount, main_buffer.data());
+				drwav_read_raw(wave, wave->totalPCMFrameCount, main_buffer.data());
 			}
 			else
 			{
@@ -165,8 +161,7 @@ namespace CSA
 			: BaseFormat()
 		{
 			format = CSAFormat::Flac;
-			marshal_context ctx{};
-			const wchar_t* nativePath = ctx.marshal_as<const wchar_t*>(path);
+			pin_ptr<const wchar_t> nativePath = PtrToStringChars(path);
 
 			drflac* flac = drflac_open_file_w(nativePath, nullptr);
 			if (flac == nullptr)
@@ -180,17 +175,15 @@ namespace CSA
 			info.FormatTag = WAVE_FORMAT_PCM;
 			info.Channels = static_cast<unsigned short>(flac->channels);
 			info.SampleRate = flac->sampleRate;
-			info.BitsPerSample = 16;
-			info.BlockAlign = static_cast<unsigned short>(info.Channels * 16 / 8);
+			info.BitsPerSample = DEFAULT_BITS_PER_SAMPLE;
+			info.BlockAlign = static_cast<unsigned short>(
+				info.Channels * info.BitsPerSample / 8
+			);
 			info.AvgBytesPerSec = info.SampleRate * info.BlockAlign;
 
 			uint64_t allFrameCount = info.Channels * flac->totalPCMFrameCount;
-			if (allFrameCount > UINT64_MAX)
-			{
-				System::Console::WriteLine("drflacで扱える値の数を超えました");
-			}
 
-			std::vector<short> main_buffer((size_t)allFrameCount);
+			std::vector<short> main_buffer(allFrameCount);
 			drflac_read_pcm_frames_s16(flac, flac->totalPCMFrameCount, main_buffer.data());
 
 			buffer = vectorToCLIArray(main_buffer);
