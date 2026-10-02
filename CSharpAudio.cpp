@@ -104,6 +104,11 @@ CSA::CSharpAudio::~CSharpAudio()
 
 CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 {
+	if (main_data == nullptr)
+	{
+		lastError = CSAResult::NULL_DATA;
+		return Types::INVALID_HANDLE;
+	}
 	if (!main_data->IsValid())
 	{
 		lastError = CSAResult::INVALID_DATA;

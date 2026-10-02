@@ -29,6 +29,7 @@ namespace CSA
 			SUCCEEDED,
 
 			// Submit Result
+			NULL_DATA,
 			INVALID_DATA,
 			FAILED_CREATE_SOURCEVOICE,
 			EMPTY_BUFFER,
