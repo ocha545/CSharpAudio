@@ -98,12 +98,6 @@ namespace CSA
 					//読み込み終了
 					break;
 				}
-				if (readLength < 0)
-				{
-					//読み込み失敗
-					drmp3_uninit(mp3);
-					delete mp3;
-				}
 
 				drmp3_uint64 sample = readLength * (drmp3_uint64)info.Channels;
 				main_buffer.insert(main_buffer.end(), cycle_buffer.begin(), cycle_buffer.begin() + (size_t)sample);

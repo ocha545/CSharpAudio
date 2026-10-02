@@ -77,22 +77,31 @@ CSA::CSharpAudio::~CSharpAudio()
 		{
 			if (sv != nullptr)
 			{
-				sv->DestroyVoice();
-				delete sv;
+				if (sv->IsValid())
+				{
+					sv->DestroyVoice();
+					delete sv;
+				}
 			}
 		}
 	}
 
 	if (masterVoice != nullptr)
 	{
-		masterVoice->DestroyVoice();
-		delete masterVoice;
+		if(masterVoice->IsValid())
+		{
+			masterVoice->DestroyVoice();
+			delete masterVoice;
+		}
 	}
 
 	if (xaudio2 != nullptr)
 	{
-		xaudio2->Release();
-		delete xaudio2;
+		if (xaudio2->IsValid())
+		{
+			xaudio2->Release();
+			delete xaudio2;
+		}
 	}
 
 	// CoInitializeを行ったスレッドと同じになるようデストラクタで行う
