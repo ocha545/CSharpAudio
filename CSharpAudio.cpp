@@ -140,6 +140,9 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	XAUDIO2_BUFFER xaudio2Buffer{};
 	if (main_data->GetBuffer()->Length == 0)
 	{
+		sourceVoice->DestroyVoice();
+		delete sourceVoice;
+
 		lastError = CSAResult::EMPTY_BUFFER;
 		return Types::INVALID_HANDLE;
 	}
@@ -153,6 +156,9 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
 	if (FAILED(result))
 	{
+		sourceVoice->DestroyVoice();
+		delete sourceVoice;
+
 		lastError = CSAResult::FAILED_SUBMIT_XAUDIO2_BUFFER;
 		return Types::INVALID_HANDLE;
 	}
@@ -165,6 +171,10 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 
 CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loopCount)
 {
+	if (main_data == nullptr)
+	{
+		lastError = CSAResult::NULL_DATA;
+	}
 	if (!main_data->IsValid())
 	{
 		lastError = CSAResult::INVALID_DATA;
@@ -186,6 +196,9 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loopCount)
 	XAUDIO2_BUFFER xaudio2Buffer{};
 	if (main_data->GetBuffer()->Length == 0)
 	{
+		sourceVoice->DestroyVoice();
+		delete sourceVoice;
+
 		lastError = CSAResult::EMPTY_BUFFER;
 		return Types::INVALID_HANDLE;
 	}
@@ -199,6 +212,9 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, int loopCount)
 	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
 	if (FAILED(result))
 	{
+		sourceVoice->DestroyVoice();
+		delete sourceVoice;
+
 		lastError = CSAResult::FAILED_SUBMIT_XAUDIO2_BUFFER;
 		return Types::INVALID_HANDLE;
 	}

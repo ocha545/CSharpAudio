@@ -2,6 +2,7 @@
 
 #pragma warning(push)
 #pragma warning(disable: 4793)
+#pragma warning(disable: 6262)
 
 #define DR_MP3_IMPLEMENTATION
 #include"third_party/dr_mp3.h"
