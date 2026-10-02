@@ -31,6 +31,7 @@ namespace CSA
 			// Submit Result
 			NULL_DATA,
 			INVALID_DATA,
+			FAILED_CO_TASK_MEM_ALLOC,
 			FAILED_CREATE_SOURCEVOICE,
 			EMPTY_BUFFER,
 			FAILED_SUBMIT_XAUDIO2_BUFFER,
@@ -96,7 +97,7 @@ namespace CSA
 				bool IsValid();
 				CSAFormat GetFormat();
 				CSAInfo GetInfo();
-				array<short>^% GetBuffer();
+				array<short>^ GetBuffer();
 			};
 
 			/// @brief mp3ファイルのデータを抽出します。

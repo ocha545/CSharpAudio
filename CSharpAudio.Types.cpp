@@ -34,6 +34,7 @@ namespace CSA
 		{
 			if (buffer != nullptr)
 			{
+//System::Console::WriteLine("Finaryze " + format.ToString());
 				delete buffer;
 			}
 		}
@@ -49,7 +50,7 @@ namespace CSA
 		{
 			return info;
 		}
-		array<short>^% Format::BaseFormat::GetBuffer()
+		array<short>^ Format::BaseFormat::GetBuffer()
 		{
 			return buffer;
 		}
@@ -221,6 +222,7 @@ namespace CSA
 		{
 			if (xaudio2 != IntPtr::Zero)
 			{
+//System::Console::WriteLine("Release XAudio2");
 				getPtr<IXAudio2>(xaudio2)->Release();
 				xaudio2 = IntPtr::Zero;
 			}
@@ -255,6 +257,7 @@ namespace CSA
 		{
 			if (masterVoice != IntPtr::Zero)
 			{
+//System::Console::WriteLine("Destroy MasteringVoice");
 				getPtr<IXAudio2MasteringVoice>(masterVoice)->DestroyVoice();
 				masterVoice = IntPtr::Zero;
 			}
@@ -289,6 +292,7 @@ namespace CSA
 		{
 			if (sourceVoice != IntPtr::Zero)
 			{
+//System::Console::WriteLine("Destroy SourceVoice");
 				getPtr<IXAudio2SourceVoice>(sourceVoice)->DestroyVoice();
 				sourceVoice = IntPtr::Zero;
 			}
