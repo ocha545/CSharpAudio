@@ -49,6 +49,8 @@ CSA::CSharpAudio::CSharpAudio()
 	//sourceVoiceInfos = gcnew List<CSAInfo>(0);
 	coInitialized = false;
 	lastError = CSAResult::UNUSED;
+	submitDataPtrs = gcnew List<IntPtr>(0);
+	submitDataSizes = gcnew List<uint64_t>(0);
 
 	switch (initialize())
 	{
@@ -71,6 +73,29 @@ CSA::CSharpAudio::CSharpAudio()
 
 CSA::CSharpAudio::~CSharpAudio()
 {
+	if (submitDataPtrs != nullptr)
+	{
+		for each (IntPtr ptr in submitDataPtrs)
+		{
+			if (ptr.ToPointer() != nullptr && ptr != IntPtr::Zero)
+			{
+				CoTaskMemFree(ptr.ToPointer());
+				ptr = IntPtr::Zero;
+//System::Console::WriteLine("Free SubmitDataPtrs");
+			}
+		}
+		submitDataPtrs->Clear();
+		delete submitDataPtrs;
+//System::Console::WriteLine("Delete SubmitDataPtrs");
+	}
+
+	if (submitDataSizes != nullptr)
+	{
+		submitDataSizes->Clear();
+		delete submitDataSizes;
+//System::Console::WriteLine("Delete SubmitDataPtrs");
+	}
+
 	if (sourceVoices != nullptr)
 	{
 		for each(XAudio2SV ^ sv in sourceVoices)
@@ -81,9 +106,12 @@ CSA::CSharpAudio::~CSharpAudio()
 				{
 					sv->DestroyVoice();
 					delete sv;
+//System::Console::WriteLine("Delete SourceVoice");
 				}
 			}
 		}
+		delete sourceVoices;
+//System::Console::WriteLine("Delete SourceVoices");
 	}
 
 	if (masterVoice != nullptr)
@@ -92,6 +120,7 @@ CSA::CSharpAudio::~CSharpAudio()
 		{
 			masterVoice->DestroyVoice();
 			delete masterVoice;
+//System::Console::WriteLine("Delete MasteringVoice");
 		}
 	}
 
@@ -101,6 +130,7 @@ CSA::CSharpAudio::~CSharpAudio()
 		{
 			xaudio2->Release();
 			delete xaudio2;
+//System::Console::WriteLine("Delete XAudio2");
 		}
 	}
 
@@ -109,6 +139,7 @@ CSA::CSharpAudio::~CSharpAudio()
 	{
 		CoUninitialize();
 		coInitialized = false;
+//System::Console::WriteLine("Uninitialize COM");
 	}
 }
 
@@ -147,10 +178,23 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 		return Types::INVALID_HANDLE;
 	}
 
-	pin_ptr<short> nativeBuf = &main_data->GetBuffer()[0];
-	xaudio2Buffer.pAudioData = (BYTE*)nativeBuf;
+	uint64_t submitDataSize = (uint64_t)main_data->GetBuffer()->Length * sizeof(main_data->GetBuffer()[0]);
+	void* submitDataPtr = CoTaskMemAlloc(submitDataSize);
+	if (submitDataPtr == nullptr)
+	{
+		sourceVoice->DestroyVoice();
+		delete sourceVoice;
+	
+		lastError = CSAResult::FAILED_CO_TASK_MEM_ALLOC;
+		return Types::INVALID_HANDLE;
+	}
+
+	pin_ptr<short> sourceData = &main_data->GetBuffer()[0];
+	memcpy(submitDataPtr, sourceData, submitDataSize);
+
+	xaudio2Buffer.pAudioData = static_cast<const BYTE*>(submitDataPtr);
 	xaudio2Buffer.Flags = XAUDIO2_END_OF_STREAM;
-	xaudio2Buffer.AudioBytes = (size_t)main_data->GetBuffer()->Length * sizeof(main_data->GetBuffer()[0]);
+	xaudio2Buffer.AudioBytes = submitDataSize;
 	xaudio2Buffer.LoopCount = 0;
 
 	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
@@ -164,6 +208,8 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	}
 
 	sourceVoices->Add(sourceVoice);
+	submitDataPtrs->Add(IntPtr(submitDataPtr));
+	submitDataSizes->Add(submitDataSize);
 	//sourceVoiceInfos->Add(main_data->GetInfo());
 
 	return (sourceVoices->Count - 1);

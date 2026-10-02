@@ -21,6 +21,8 @@ namespace CSA
 		XAudio2^ xaudio2;
 		XAudio2MV^ masterVoice;
 		List<XAudio2SV^>^ sourceVoices;
+		List<IntPtr>^ submitDataPtrs;
+		List<uint64_t>^ submitDataSizes;
 		//List<CSAInfo>^ sourceVoiceInfos;
 		CSAResult lastError;
 
