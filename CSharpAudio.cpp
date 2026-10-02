@@ -2,7 +2,8 @@
 
 bool CSA::CSharpAudio::validHandle(CSAHandle handle)
 {
-	if (handle < sourceVoices->Count && handle != Types::INVALID_HANDLE)
+	if (handle < sourceVoices->Count && handle != Types::INVALID_HANDLE &&
+		sourceVoices[handle] != nullptr)
 	{
 		return sourceVoices[handle]->IsValid();
 	}
