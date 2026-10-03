@@ -32,9 +32,11 @@ namespace CSA
 		}
 		Format::BaseFormat::!BaseFormat()
 		{
+#ifdef CSA_PRINT_LOG
+System::Console::WriteLine("[INTERNAL] DELETE fmt:" + format.ToString());
+#endif
 			if (buffer != nullptr)
 			{
-//System::Console::WriteLine("Finaryze " + format.ToString());
 				delete buffer;
 			}
 		}
@@ -76,7 +78,6 @@ namespace CSA
 			{
 				delete mp3;
 				isRead = false;
-				//System::Console::WriteLine("drmp3の初期化に失敗しました");
 				return;
 			}
 
@@ -124,7 +125,6 @@ namespace CSA
 			{
 				delete wave;
 				isRead = false;
-				//System::Console::WriteLine("drwavの初期化に失敗しました");
 				return;
 			}
 
@@ -148,6 +148,7 @@ namespace CSA
 				drwav_uninit(wave);
 				delete wave;
 				isRead = false;
+				return;
 			}
 
 			buffer = vectorToCLIArray(main_buffer);
@@ -165,11 +166,9 @@ namespace CSA
 			drflac* flac = drflac_open_file_w(nativePath, nullptr);
 			if (flac == nullptr)
 			{
-				System::Console::WriteLine("Flacファイルを読み込めませんでした");
 				isRead = false;
 				return;
 			}
-			isRead = true;
 
 			info.FormatTag = WAVE_FORMAT_PCM;
 			info.Channels = static_cast<unsigned short>(flac->channels);
@@ -188,8 +187,10 @@ namespace CSA
 			{
 				drflac_close(flac);
 				isRead = false;
+				return;
 			}
 
+			isRead = true;
 			buffer = vectorToCLIArray(main_buffer);
 			drflac_close(flac);
 		}
@@ -230,7 +231,9 @@ namespace CSA
 		{
 			if (xaudio2 != IntPtr::Zero)
 			{
-//System::Console::WriteLine("Release XAudio2");
+#ifdef CSA_PRINT_LOG
+System::Console::WriteLine("[INTERNAL] DELETE XAudio2");
+#endif
 				getPtr<IXAudio2>(xaudio2)->Release();
 				xaudio2 = IntPtr::Zero;
 			}
@@ -265,7 +268,9 @@ namespace CSA
 		{
 			if (masterVoice != IntPtr::Zero)
 			{
-//System::Console::WriteLine("Destroy MasteringVoice");
+#ifdef CSA_PRINT_LOG
+System::Console::WriteLine("[INTERNAL] DELETE XAudio2MV");
+#endif
 				getPtr<IXAudio2MasteringVoice>(masterVoice)->DestroyVoice();
 				masterVoice = IntPtr::Zero;
 			}
@@ -300,7 +305,9 @@ namespace CSA
 		{
 			if (sourceVoice != IntPtr::Zero)
 			{
-//System::Console::WriteLine("Destroy SourceVoice");
+#ifdef CSA_PRINT_LOG
+				System::Console::WriteLine("[INTERNAL] DELETE XAudio2SV");
+#endif
 				getPtr<IXAudio2SourceVoice>(sourceVoice)->DestroyVoice();
 				sourceVoice = IntPtr::Zero;
 			}
@@ -318,31 +325,31 @@ namespace CSA
 			{
 			case XAUDIO2_E_INVALID_CALL:
 				throw gcnew CSharpAudioException(CSAResult::INVALID_CALL.ToString());
-				return;
+				break;
 
 			case XAUDIO2_E_XMA_DECODER_ERROR:
 				throw gcnew CSharpAudioException(
 					"Xbox 360 XMA ハードウェアで回復不能なエラーが発生しました: " + CSAResult::XMA_DECODER_ERROR.ToString()
 				);
-				return;
+				break;
 
 			case XAUDIO2_E_XAPO_CREATION_FAILED:
 				throw gcnew CSharpAudioException(
 					"XAPOのインスタンス化に失敗しました: " + CSAResult::XAPO_CREATION_FAILED.ToString()
 				);
-				return;
+				break;
 
 			case XAUDIO2_E_DEVICE_INVALIDATED:
 				throw gcnew CSharpAudioException(
 					"オーディオデバイスが取り外されたり、他のイベントが発生したため使用出来なくなりました: " + CSAResult::DEVICE_INVALIDATED.ToString()
 				);
-				return;
+				break;
 
 			default:
 				throw gcnew CSharpAudioException(
 					"Win32APIの中で何かしらのエラーが発生しました: " + result
 				);
-				return;
+				break;
 			}
 		}
 	}
