@@ -1,4 +1,10 @@
 ﻿#pragma once
+
+// x86対応が出来ていない為、エラーにします
+#ifndef _WIN64
+#error Unsupported Target
+#endif
+
 #using<System.dll>
 #using<System.Collections.dll>
 
