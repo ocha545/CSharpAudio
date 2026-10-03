@@ -6,8 +6,7 @@ bool CSA::CSharpAudio::validHandle(CSAHandle handle)
 	{
 		return false;
 	}
-
-	if (handle < sourceVoices->Count || handle >= 0 ||
+	if (handle < sourceVoices->Count && handle >= 0 &&
 		sourceVoices[handle] != nullptr)
 	{
 		return sourceVoices[handle]->IsValid();
@@ -60,16 +59,24 @@ CSAResult CSA::CSharpAudio::initialize()
 	return CSAResult::SUCCEEDED;//成功！
 }
 
+
+void CSA::CSharpAudio::printLog(String^ txt)
+{
+#ifdef CSA_PRINT_LOG
+	System::Console::WriteLine(txt);
+#endif
+}
+
 CSA::CSharpAudio::CSharpAudio()
 {
 	xaudio2 = gcnew XAudio2();
 	masterVoice = gcnew XAudio2MV();
 	sourceVoices = gcnew List<XAudio2SV^>(0);
+	submitDataPtrs = gcnew List<IntPtr>(0);
 	//sourceVoiceInfos = gcnew List<CSAInfo>(0);
+	//submitDataSizes = gcnew List<uint64_t>(0);
 	coInitialized = false;
 	lastError = CSAResult::UNUSED;
-	submitDataPtrs = gcnew List<IntPtr>(0);
-	submitDataSizes = gcnew List<uint64_t>(0);
 
 	switch (initialize())
 	{
@@ -92,49 +99,47 @@ CSA::CSharpAudio::CSharpAudio()
 
 CSA::CSharpAudio::~CSharpAudio()
 {
-	if (submitDataPtrs != nullptr)
-	{
-		for each (IntPtr ptr in submitDataPtrs)
-		{
-			if (ptr.ToPointer() != nullptr && ptr != IntPtr::Zero)
-			{
-				CoTaskMemFree(ptr.ToPointer());
-				ptr = IntPtr::Zero;
-//System::Console::WriteLine("Free SubmitDataPtrs");
-			}
-		}
-		submitDataPtrs->Clear();
-		delete submitDataPtrs;
-		submitDataPtrs = nullptr;
-//System::Console::WriteLine("Delete SubmitDataPtrs");
-	}
-
-	if (submitDataSizes != nullptr)
-	{
-		submitDataSizes->Clear();
-		delete submitDataSizes;
-		submitDataSizes = nullptr;
-//System::Console::WriteLine("Delete SubmitDataPtrs");
-	}
-
 	if (sourceVoices != nullptr)
 	{
-		for each(XAudio2SV ^ sv in sourceVoices)
+		for(int i = 0; i < sourceVoices->Count; i++)
 		{
-			if (sv != nullptr)
+			if (sourceVoices[i] != nullptr)
 			{
-				if (sv->IsValid())
+				if (sourceVoices[i]->IsValid())
 				{
-					sv->DestroyVoice();
-					delete sv;
-//System::Console::WriteLine("Delete SourceVoice");
+					sourceVoices[i]->Get()->Stop();
+					sourceVoices[i]->Get()->FlushSourceBuffers();
+					sourceVoices[i]->DestroyVoice();
 				}
+				delete sourceVoices[i];
+//System::Console::WriteLine("DELETE XAudio2SV[" + i + "]");
+				printLog("DELETE XAudio2SV[" + i + "]");
 			}
 		}
 		sourceVoices->Clear();
 		delete sourceVoices;
 		sourceVoices = nullptr;
-//System::Console::WriteLine("Delete SourceVoices");
+//System::Console::WriteLine("DELETE XAudio2SV List");
+		printLog("DELETE XAudio2SV List");
+	}
+
+	if (submitDataPtrs != nullptr)
+	{
+		for(int i = 0; i < submitDataPtrs->Count; i++)
+		{
+			if (submitDataPtrs[i].ToPointer() != nullptr && submitDataPtrs[i] != IntPtr::Zero)
+			{
+				CoTaskMemFree(submitDataPtrs[i].ToPointer());
+			}
+			submitDataPtrs[i] = IntPtr::Zero;
+//System::Console::WriteLine("DELETE SubmitDataPtrs[" + i + "]");
+			printLog("DELETE IntPtr[" + i + "]");
+		}
+		submitDataPtrs->Clear();
+		delete submitDataPtrs;
+		submitDataPtrs = nullptr;
+//System::Console::WriteLine("DELETE SubmitDataPtrs");
+		printLog("DELETE IntPtr List");
 	}
 
 	if (masterVoice != nullptr)
@@ -142,10 +147,11 @@ CSA::CSharpAudio::~CSharpAudio()
 		if(masterVoice->IsValid())
 		{
 			masterVoice->DestroyVoice();
-			delete masterVoice;
-			masterVoice = nullptr;
-//System::Console::WriteLine("Delete MasteringVoice");
+//System::Console::WriteLine("DELETE MasteringVoice");
+			printLog("DELETE MasteringVoice");
 		}
+		delete masterVoice;
+		masterVoice = nullptr;
 	}
 
 	if (xaudio2 != nullptr)
@@ -153,10 +159,11 @@ CSA::CSharpAudio::~CSharpAudio()
 		if (xaudio2->IsValid())
 		{
 			xaudio2->Release();
-			delete xaudio2;
-			xaudio2 = nullptr;
-//System::Console::WriteLine("Delete XAudio2");
+//System::Console::WriteLine("DELETE XAudio2");
+			printLog("DELETE XAudio2");
 		}
+		delete xaudio2;
+		xaudio2 = nullptr;
 	}
 
 	// CoInitializeを行ったスレッドと同じになるようデストラクタで行う
@@ -165,10 +172,17 @@ CSA::CSharpAudio::~CSharpAudio()
 		CoUninitialize();
 		coInitialized = false;
 //System::Console::WriteLine("Uninitialize COM");
+		printLog("Uninitialize COM");
 	}
 }
 
 CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
+{
+	//ループしない
+	return Submit(main_data, 0);
+}
+
+CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, unsigned int loopCount)
 {
 	if (main_data == nullptr)
 	{
@@ -198,6 +212,7 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	{
 		sourceVoice->DestroyVoice();
 		delete sourceVoice;
+		sourceVoice = nullptr;
 
 		lastError = CSAResult::EMPTY_BUFFER;
 		return Types::INVALID_HANDLE;
@@ -209,7 +224,8 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	{
 		sourceVoice->DestroyVoice();
 		delete sourceVoice;
-	
+		sourceVoice = nullptr;
+
 		lastError = CSAResult::FAILED_CO_TASK_MEM_ALLOC;
 		return Types::INVALID_HANDLE;
 	}
@@ -220,80 +236,29 @@ CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data)
 	xaudio2Buffer.pAudioData = static_cast<const BYTE*>(submitDataPtr);
 	xaudio2Buffer.Flags = XAUDIO2_END_OF_STREAM;
 	xaudio2Buffer.AudioBytes = submitDataSize;
-	xaudio2Buffer.LoopCount = 0;
-
-	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
-	if (FAILED(result))
-	{
-		sourceVoice->DestroyVoice();
-		delete sourceVoice;
-
-		lastError = CSAResult::FAILED_SUBMIT_XAUDIO2_BUFFER;
-		return Types::INVALID_HANDLE;
-	}
-
-	sourceVoices->Add(sourceVoice);
-	submitDataPtrs->Add(IntPtr(submitDataPtr));
-	submitDataSizes->Add(submitDataSize);
-	//sourceVoiceInfos->Add(main_data->GetInfo());
-
-
-	lastError = CSAResult::UNUSED;
-	return (sourceVoices->Count - 1);
-}
-
-CSAHandle CSA::CSharpAudio::Submit(BaseFormat^ main_data, unsigned int loopCount)
-{
-	if (main_data == nullptr)
-	{
-		lastError = CSAResult::NULL_DATA;
-	}
-	if (!main_data->IsValid())
-	{
-		lastError = CSAResult::INVALID_DATA;
-		return Types::INVALID_HANDLE;
-	}
-
-	IXAudio2SourceVoice* sourceVoice_tmp = nullptr;
-	WAVEFORMATEX fmt = main_data->GetInfo().GetNativeData();
-
-	HRESULT result = xaudio2->Get()->CreateSourceVoice(&sourceVoice_tmp, &fmt, XAUDIO2_VOICE_USEFILTER);
-	if (FAILED(result))
-	{
-		lastError = CSAResult::FAILED_CREATE_SOURCEVOICE;
-		return Types::INVALID_HANDLE;
-	}
-	XAudio2SV^ sourceVoice = gcnew XAudio2SV();
-	sourceVoice->SetPointer(sourceVoice_tmp);
-
-	XAUDIO2_BUFFER xaudio2Buffer{};
-	if (main_data->GetBuffer()->Length == 0)
-	{
-		sourceVoice->DestroyVoice();
-		delete sourceVoice;
-
-		lastError = CSAResult::EMPTY_BUFFER;
-		return Types::INVALID_HANDLE;
-	}
-
-	pin_ptr<short> nativeBuf = &main_data->GetBuffer()[0];
-	xaudio2Buffer.pAudioData = (BYTE*)nativeBuf;
-	xaudio2Buffer.Flags = XAUDIO2_END_OF_STREAM;
-	xaudio2Buffer.AudioBytes = (size_t)main_data->GetBuffer()->Length * sizeof(main_data->GetBuffer()[0]);
 	xaudio2Buffer.LoopCount = loopCount;
 
 	result = sourceVoice->Get()->SubmitSourceBuffer(&xaudio2Buffer);
 	if (FAILED(result))
 	{
+		CoTaskMemFree(submitDataPtr);
+
 		sourceVoice->DestroyVoice();
 		delete sourceVoice;
+		sourceVoice = nullptr;
 
 		lastError = CSAResult::FAILED_SUBMIT_XAUDIO2_BUFFER;
 		return Types::INVALID_HANDLE;
 	}
 
+	if (sourceVoices->Count != submitDataPtrs->Count)
+	{
+		lastError = CSAResult::INCONSISTENT_HANDLE;
+		return Types::INVALID_HANDLE;
+	}
+
 	sourceVoices->Add(sourceVoice);
-	//sourceVoiceInfos->Add(main_data->GetInfo());
+	submitDataPtrs->Add(IntPtr(submitDataPtr));
 
 	lastError = CSAResult::UNUSED;
 	return (sourceVoices->Count - 1);

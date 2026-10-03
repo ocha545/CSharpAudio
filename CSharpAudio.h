@@ -1,6 +1,9 @@
 ﻿#pragma once
 #using<System.dll>
 #using<System.Collections.dll>
+
+//#define CSA_PRINT_LOG
+
 #include"CSharpAudio.Types.h"
 #include"CSharpAudio.Helper.h"
 using CSA::Types::Manage::XAudio2;
@@ -23,7 +26,7 @@ namespace CSA
 		XAudio2MV^ masterVoice;
 		List<XAudio2SV^>^ sourceVoices;
 		List<IntPtr>^ submitDataPtrs;
-		List<uint64_t>^ submitDataSizes;
+		//List<uint64_t>^ submitDataSizes;
 		//List<CSAInfo>^ sourceVoiceInfos;
 		CSAResult lastError;
 
@@ -32,6 +35,8 @@ namespace CSA
 		bool validHandle(CSAHandle handle);
 
 		CSAResult initialize();
+
+		void printLog(String^ txt);
 
 	public:
 		/// @brief CSharpAudioを作成し、初期化します
