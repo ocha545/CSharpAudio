@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
+using System.Threading;
 using CSA;
 using CSA.Types;
 using CSA.Types.Format;
@@ -12,7 +12,7 @@ class Program
 
 		using CSharpAudio csa = new CSharpAudio();
 		// シャイニングスター : 魔王魂(MaouDamashii)
-		MP3 mp3 = new MP3("../maou_14_shining_star.mp3");
+		using MP3 mp3 = new MP3("../maou_14_shining_star.mp3");
 
 		int handle = csa.Submit(mp3);
 		if(handle == INVALID_HANDLE)
@@ -26,7 +26,7 @@ class Program
 		csa.Start(handle);
 		while(csa.IsStarting(handle))
 		{
-			Task.Delay(1000);
+			Thread.Sleep(1000);
 		}
 		Console.WriteLine("再生終了");
 	}

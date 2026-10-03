@@ -1,5 +1,5 @@
 using System;
-using System.Threading.Tasks;
+using System.Threading;
 using CSA;
 using CSA.Types;
 using CSA.Types.Format;
@@ -25,7 +25,7 @@ class Program
 		csa.Start(handle);
 		while(csa.IsStarting(handle))
 		{
-			Task.Delay(1000);
+			Thread.Sleep(1000);
 		}
 		Console.WriteLine("再生終了");
 	}
